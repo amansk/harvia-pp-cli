@@ -81,6 +81,18 @@ func TestLoginDoctorStatusNoSecrets(t *testing.T) {
 		t.Fatalf("doctor output: %s", out)
 	}
 
+	out, errb, code = run(t, opt, "--json", "doctor")
+	if code != 0 {
+		t.Fatalf("doctor --json %d %s %s", code, out, errb)
+	}
+	var doctorEnv map[string]any
+	if err := json.Unmarshal([]byte(out), &doctorEnv); err != nil {
+		t.Fatal(err, out)
+	}
+	if doctorEnv["ok"] != true {
+		t.Fatalf("doctor envelope ok want true: %s", out)
+	}
+
 	out, errb, code = run(t, opt, "--json", "auth", "status")
 	if code != 0 {
 		t.Fatalf("status %d %s", code, errb)
@@ -94,6 +106,76 @@ func TestLoginDoctorStatusNoSecrets(t *testing.T) {
 	}
 	if env["ok"] != true {
 		t.Fatalf("%s", out)
+	}
+}
+
+func TestDoctorJSONFailedEnvelope(t *testing.T) {
+	srv := fixture.New()
+	defer srv.Close()
+	opt, _ := testOpt(t, srv)
+	out, errb, code := run(t, opt, "--json", "doctor")
+	if code == 0 {
+		t.Fatalf("doctor without login should fail: %s", out)
+	}
+	var env map[string]any
+	if err := json.Unmarshal([]byte(out), &env); err != nil {
+		t.Fatal(err, out, errb)
+	}
+	if env["ok"] != false {
+		t.Fatalf("envelope ok want false, got %s", out)
+	}
+	if _, has := env["error"]; !has {
+		t.Fatalf("expected error field: %s", out)
+	}
+
+	out, errb, code = run(t, opt, "--agent", "doctor")
+	if code == 0 {
+		t.Fatal("agent doctor without login should fail")
+	}
+	if err := json.Unmarshal([]byte(out), &env); err != nil {
+		t.Fatal(err, out, errb)
+	}
+	if env["ok"] != false {
+		t.Fatalf("agent envelope ok want false: %s", out)
+	}
+}
+
+func TestDoctorTokenModeFail(t *testing.T) {
+	srv := fixture.New()
+	defer srv.Close()
+	opt, home := testOpt(t, srv)
+	if _, _, code := run(t, opt, "auth", "login"); code != 0 {
+		t.Fatal("login")
+	}
+	path := auth.TokenPath(home)
+	if err := os.Chmod(path, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, errb, code := run(t, opt, "--json", "doctor")
+	if code == 0 {
+		t.Fatalf("doctor should fail on 0644 token: %s %s", out, errb)
+	}
+	var env map[string]any
+	if err := json.Unmarshal([]byte(out), &env); err != nil {
+		t.Fatal(err, out)
+	}
+	if env["ok"] != false {
+		t.Fatalf("envelope ok want false: %s", out)
+	}
+	data, _ := env["data"].(map[string]any)
+	checks, _ := data["checks"].([]any)
+	var sawMode bool
+	for _, raw := range checks {
+		ch, _ := raw.(map[string]any)
+		if ch["name"] == "token_mode" {
+			sawMode = true
+			if ch["ok"] != false {
+				t.Fatalf("token_mode should fail: %+v", ch)
+			}
+		}
+	}
+	if !sawMode {
+		t.Fatalf("missing token_mode check: %s", out)
 	}
 }
 

@@ -177,7 +177,7 @@ func (c *Client) Login() (auth.Tokens, error) {
 		"password": c.Password,
 	})
 	if err != nil {
-		return auth.Tokens{}, exitcode.Wrap(exitcode.Auth, fmt.Errorf("login failed (wrong password, or Apple/Google SSO with no MyHarvia password set): %w", err))
+		return auth.Tokens{}, exitcode.Authf("login failed (wrong password, or Apple/Google SSO with no MyHarvia password set): %v", err)
 	}
 	var tok Tokens
 	if err := json.Unmarshal(raw, &tok); err != nil {
@@ -286,13 +286,78 @@ func (c *Client) authed(method, rawURL string, body any) (json.RawMessage, error
 	}
 	raw, status, err := c.do(method, rawURL, tok, body)
 	if err != nil && status == 401 {
-		tok, err2 := c.IDToken(true)
-		if err2 != nil {
-			return nil, err
+		tok, recErr := c.recoverAfter401()
+		if recErr != nil {
+			return nil, recErr
 		}
 		raw, _, err = c.do(method, rawURL, tok, body)
 	}
 	return raw, err
+}
+
+func (c *Client) invalidateIDToken() {
+	if c.tokens != nil {
+		c.tokens.IDToken = ""
+	}
+}
+
+func (c *Client) refreshMaterial() (refreshToken, username string) {
+	if c.tokens != nil {
+		refreshToken = c.tokens.RefreshToken
+		username = c.tokens.Username
+	}
+	if refreshToken != "" {
+		return refreshToken, username
+	}
+	cached, err := auth.LoadTokens(c.Home)
+	if err != nil || cached == nil {
+		return "", username
+	}
+	return cached.RefreshToken, firstNonEmpty(username, cached.Username)
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// recoverAfter401 drops the cached idToken, tries refresh, then re-login.
+// Token-only sessions can recover via refresh. Failures return the
+// refresh/re-login error, not the original 401.
+func (c *Client) recoverAfter401() (string, error) {
+	c.invalidateIDToken()
+	refreshTok, user := c.refreshMaterial()
+	if c.Username == "" {
+		c.Username = user
+	}
+
+	var refreshErr error
+	if refreshTok != "" {
+		refreshed, err := c.refresh(refreshTok)
+		if err == nil && refreshed != nil && refreshed.IDToken != "" {
+			return refreshed.IDToken, nil
+		}
+		refreshErr = err
+		if refreshErr == nil {
+			refreshErr = exitcode.Authf("refresh did not return idToken")
+		}
+	}
+
+	if c.Username == "" || c.Password == "" {
+		if refreshErr != nil {
+			return "", refreshErr
+		}
+		return "", exitcode.Authf("session expired; re-run auth login (or set HARVIA_USERNAME / HARVIA_PASSWORD)")
+	}
+	stored, err := c.Login()
+	if err != nil {
+		return "", err
+	}
+	return stored.IDToken, nil
 }
 
 // Devices lists account devices (paginated).

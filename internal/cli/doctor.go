@@ -42,10 +42,12 @@ func newDoctorCmd(opt *Options) *cobra.Command {
 				add("token", false, "missing token.json; run auth login")
 			} else {
 				detail := fmt.Sprintf("user=%s id_token=%t refresh=%t", st.Username, st.HasIDToken, st.HasRefreshToken)
-				if st.Mode != "" && st.Mode != "0600" {
-					detail += " (warn: mode " + st.Mode + ", want 0600)"
-				}
 				add("token", true, detail)
+				if st.Mode != "0600" {
+					add("token_mode", false, "mode "+st.Mode+", want 0600")
+				} else {
+					add("token_mode", true, st.Mode)
+				}
 			}
 
 			if opt.NoStore {
@@ -89,8 +91,12 @@ func newDoctorCmd(opt *Options) *cobra.Command {
 				}
 			}
 			payload := map[string]any{"ok": ok, "checks": checks}
+			errMsg := ""
+			if !ok {
+				errMsg = "doctor failed"
+			}
 			if opt.JSON || opt.Agent {
-				if err := writeOut(cmd, opt, payload); err != nil {
+				if err := writeOutStatus(cmd, opt, ok, payload, errMsg); err != nil {
 					return err
 				}
 			} else {

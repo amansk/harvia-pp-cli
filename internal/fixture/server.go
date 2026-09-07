@@ -14,13 +14,15 @@ import (
 
 // Server records requests and serves testdata/fixtures.
 type Server struct {
-	URL          string
-	EndpointsURL string
-	http         *httptest.Server
-	mu           sync.Mutex
-	Reqs         []Request
-	StateOn      bool
-	FailAuth     bool
+	URL                 string
+	EndpointsURL        string
+	http                *httptest.Server
+	mu                  sync.Mutex
+	Reqs                []Request
+	StateOn             bool
+	FailAuth            bool
+	FailRefresh         bool
+	UnauthorizedDevices int
 }
 
 // Request is one captured call (bodies never include live secrets; fixtures only).
@@ -82,7 +84,10 @@ func (s *Server) endpoints(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) authToken(w http.ResponseWriter, r *http.Request) {
-	if s.FailAuth {
+	s.mu.Lock()
+	fail := s.FailAuth
+	s.mu.Unlock()
+	if fail {
 		http.Error(w, `{"message":"Invalid credentials"}`, http.StatusUnauthorized)
 		return
 	}
@@ -90,6 +95,13 @@ func (s *Server) authToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) authRefresh(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	fail := s.FailRefresh
+	s.mu.Unlock()
+	if fail {
+		http.Error(w, `{"message":"refresh rejected"}`, http.StatusUnauthorized)
+		return
+	}
 	serveFixture(w, "auth_refresh.json")
 }
 
@@ -98,6 +110,14 @@ func (s *Server) devices(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	s.mu.Lock()
+	if s.UnauthorizedDevices > 0 {
+		s.UnauthorizedDevices--
+		s.mu.Unlock()
+		http.Error(w, `{"message":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+	s.mu.Unlock()
 	serveFixture(w, "devices.json")
 }
 

@@ -194,6 +194,10 @@ func writeOut(cmd *cobra.Command, opt *Options, data any) error {
 	return opt.Mode().Encode(cmd.OutOrStdout(), data)
 }
 
+func writeOutStatus(cmd *cobra.Command, opt *Options, ok bool, data any, errMsg string) error {
+	return opt.Mode().EncodeStatus(cmd.OutOrStdout(), ok, data, errMsg)
+}
+
 func writeHumanTable(cmd *cobra.Command, opt *Options, headers []string, rows [][]string, jsonData any) error {
 	if opt.JSON || opt.Agent {
 		return writeOut(cmd, opt, jsonData)
