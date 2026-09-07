@@ -1,0 +1,6 @@
+{
+  "accessToken": "fixture-access-token",
+  "idToken": "fixture-id-token",
+  "refreshToken": "fixture-refresh-token",
+  "expiresIn": 3600
+}

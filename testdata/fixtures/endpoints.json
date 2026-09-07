@@ -1,0 +1,9 @@
+{
+  "endpoints": {
+    "RestApi": {
+      "generics": { "https": "https://example.invalid/generics" },
+      "device": { "https": "https://example.invalid/device" },
+      "data": { "https": "https://example.invalid/data" }
+    }
+  }
+}
