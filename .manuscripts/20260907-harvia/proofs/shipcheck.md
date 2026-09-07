@@ -13,6 +13,7 @@ Run 2026-09-07 on linux/amd64, Go 1.24. No live Harvia traffic.
 | Cross-compile `CGO_ENABLED=0` | darwin/arm64, darwin/amd64, linux/arm64, windows/amd64 ok |
 | `on </dev/null` without `--yes` | exit 2, no prompt, no `/devices/command` POST |
 | Secret scan (tokens, passwords, emails, coordinates) | fixtures only |
+| printing-press-library `verify_skill.py --dir .` | all 5 checks passed |
 
 ## Behaviours proven by tests
 

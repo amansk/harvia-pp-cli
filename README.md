@@ -143,11 +143,24 @@ the Printing Press manifest is [`.printing-press.json`](.printing-press.json).
 
 ## Printing Press
 
-This repo is laid out for contribution to the
+This repo is laid out for the
 [Printing Press Library](https://github.com/mvanhorn/printing-press-library)
 under `library/devices/harvia`: CLI source, `.printing-press.json`,
-`.goreleaser.yaml`, `SKILL.md`, and `.manuscripts/`. Until it lands there,
-install from this module directly (above).
+`.goreleaser.yaml`, `SKILL.md`, `AGENTS.md`, `NOTICE`,
+`.printing-press-patches/`, and `.manuscripts/<run_id>/`. The library's
+`verify_skill.py` passes against this tree.
+
+The library's CI also requires new entries to be stamped by a current
+`cli-printing-press` build (`printing_press_version` >= 4.31.7) and opened
+from a fork by `/printing-press-publish`. This CLI is hand-written, so that
+field is deliberately absent here. To submit, install the press, then run
+`/printing-press-publish harvia` from Claude Code with this checkout placed
+at `~/printing-press/library/harvia-pp-cli`, or reprint from this source with
+`/printing-press harvia`. When the code lives inside the library, change the
+module path in `go.mod` and the `-X` ldflag in `.goreleaser.yaml` to
+`github.com/mvanhorn/printing-press-library/library/devices/harvia`.
+
+Until it lands there, install from this module directly (above).
 
 ## Credits
 
