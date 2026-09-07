@@ -18,8 +18,8 @@ const (
 	DBFile    = "harvia.db"
 )
 
-// Tokens is the on-disk cache. Field names match sauna-cloud's Python CLI
-// so a token.json can be reused. Values must never be printed.
+// Tokens is the on-disk cache. Field names match Harvia's auth responses
+// (camelCase) so the file is easy to inspect. Values must never be printed.
 type Tokens struct {
 	IDToken      string  `json:"idToken,omitempty"`
 	AccessToken  string  `json:"accessToken,omitempty"`
@@ -121,7 +121,7 @@ func DeleteTokens(home string) error {
 }
 
 // TokenValid reports whether the cached idToken is still usable with a 60s
-// margin, matching the Python client.
+// margin.
 func TokenValid(t *Tokens, now time.Time, username string) bool {
 	if t == nil || t.IDToken == "" {
 		return false

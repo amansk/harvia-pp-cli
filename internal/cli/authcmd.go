@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/amansk/harvia-pp-cli/internal/auth"
 	"github.com/spf13/cobra"
@@ -101,7 +100,6 @@ func newAuthLogoutCmd(opt *Options) *cobra.Command {
 			if err := auth.DeleteTokens(home); err != nil {
 				return err
 			}
-			_ = os.Remove(auth.TokenPath(home))
 			return writeOut(cmd, opt, map[string]any{"logged_out": true, "path": auth.TokenPath(home)})
 		},
 	}

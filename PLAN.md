@@ -5,13 +5,13 @@ sauna heaters. Local binary: Cognito auth once, control + optional SQLite
 telemetry, JSON for agents.
 
 This is **not** a Cloudflare Worker, D1 app, PWA, or hosted scheduler. The
-private personal stack at [amansk/sauna-cloud](https://github.com/amansk/sauna-cloud)
-already hosts that. This repo is the independent second opinion: a Go CLI that
-talks to Harvia directly, the same shape as `ubereats-pp-cli`.
+author runs a separate private stack for that. This repo is the independent
+second opinion: a Go CLI that talks to Harvia directly, in the standard
+Printing Press `*-pp-cli` shape.
 
-Wire shapes below are **verified** against `sauna-cloud` `cli/harvia/` (Python)
-and `src/harvia/` (Worker notes), and cross-checked with public Home Assistant
-clients. Do not invent extra GraphQL or LAN paths for v1.
+Wire shapes below are **verified** against the author's earlier Python client
+and Worker notes (measured on a live Fenix heater), and cross-checked with
+public Home Assistant clients. Do not invent extra GraphQL or LAN paths for v1.
 
 ## Goals
 
@@ -26,9 +26,9 @@ clients. Do not invent extra GraphQL or LAN paths for v1.
 ## Non-goals (v1)
 
 - Cloudflare Workers, D1, wrangler, PWA, Siri, hosted scheduling.
-- A second cloud scheduler. If the user also runs sauna-cloud, **do not add
-  `schedule` / `serve` / `launchd` commands**. Two writers race on Custom
-  profile slot 3.
+- A second cloud scheduler. If the user also runs a separate sauna
+  scheduler, **do not add `schedule` / `serve` / `launchd` commands**. Two
+  writers race on Custom profile slot 3.
 - Incidental live `SAUNA on` in CI or `doctor --live`.
 - Apple/Google SSO-only accounts (no password to exchange). Document the
   MyHarvia account-password requirement.
@@ -62,18 +62,16 @@ authenticate. The user must set a real password in the MyHarvia 2 app.
    `idToken` is the Bearer (~1h).
 3. `POST {RestApi.generics.https}/auth/refresh` body
    `{"refreshToken","email"}` → `{accessToken, idToken, expiresIn}` **and no
-   new refresh token**. Measured 2026-07-24 on a live account
-   (sauna-cloud). Keep the old refresh token. Cognito measures refresh
+   new refresh token**. Measured 2026-07-24 on a live account. Keep the
+   old refresh token. Cognito measures refresh
    validity from issuance, so the clock never resets.
 4. On HTTP 401, retry the request **once** after a forced re-login.
    If refresh fails, re-login from the env/prompt password. Do not store
-   the password in `token.json` (the Python CLI does not either).
+   the password in `token.json`.
 
 ### Storage
 
-- Home: `$HARVIA_PP_HOME` or `--home`, else `~/.config/harvia`
-  (same directory as sauna-cloud's Python CLI, so a cached token can be
-  reused).
+- Home: `$HARVIA_PP_HOME` or `--home`, else `~/.config/harvia`.
 - `token.json` mode `0600`. Compatible fields: `idToken`, `accessToken`,
   `refreshToken`, `expiresIn`, `fetchedAt` (unix seconds), `username`.
 - Optional `harvia.db` (SQLite).
@@ -260,6 +258,8 @@ Module: `github.com/amansk/harvia-pp-cli`. Go 1.22, Cobra,
 Fixture server rewrites `RestApi.*.https` to itself. Assertions:
 
 - Login stores 0600 `token.json`; status/doctor never echo secrets.
+- `on </dev/null` (non-TTY stdin) without `--yes` refuses; `/dev/null` is a
+  character device, so TTY detection must use `term.IsTerminal`.
 - Device UUID comes from `name` when `deviceId` is missing or not a UUID.
 - `on --yes --temp 82` request order: target(profile=3) → profile 3 → SAUNA on.
 - Mid-session `temp` uses Custom slot; heater-off `temp` is a bare PATCH.
@@ -271,17 +271,17 @@ Fixture server rewrites `RestApi.*.https` to itself. Assertions:
 
 ---
 
-## Credits and future PP path
+## Credits and Printing Press path
 
 Reverse-engineering credit (README):
 
-- [amansk/sauna-cloud](https://github.com/amansk/sauna-cloud) (`cli/harvia`, Worker notes)
 - [WiesiDeluxe/ha-harvia-sauna](https://github.com/WiesiDeluxe/ha-harvia-sauna)
 - [TommyJuuti/harvia-home-assistant-plugin](https://github.com/TommyJuuti/harvia-home-assistant-plugin)
+- The author's earlier private Python client and Worker notes.
 
-This CLI is the proving ground for a later Printing Press library
-contribution at `library/devices/harvia` (client + fixtures + traps).
-v1 stays a standalone module.
+This CLI is packaged for the Printing Press Library at
+`library/devices/harvia` (`.printing-press.json`, `.goreleaser.yaml`,
+`SKILL.md`, `.manuscripts/`). v1 stays importable as a standalone module.
 
 ## v1 cut line
 

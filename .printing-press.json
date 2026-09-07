@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-07T00:00:00Z",
+  "api_name": "harvia",
+  "display_name": "Harvia MyHarvia 2 / Fenix",
+  "cli_name": "harvia-pp-cli",
+  "category": "devices",
+  "creator": {
+    "handle": "amansk",
+    "name": "Amandeep Khurana"
+  },
+  "owner": "amansk",
+  "printer": "amansk",
+  "printer_name": "Amandeep Khurana",
+  "run_id": "20260907-harvia",
+  "api_version": "0.1.0",
+  "auth_type": "password",
+  "description": "Control a Harvia MyHarvia 2 / Fenix WiFi sauna heater from the terminal: Cognito login once, confirm-gated heat-on, mid-session temperature via the Custom profile slot, lights, fan, live watch, and a local SQLite history of sessions and hours-on that Harvia's cloud never keeps.",
+  "novel_features": [
+    {
+      "name": "Confirm-gated heat-on",
+      "command": "on",
+      "description": "Powers a real 240V heater only with --yes, --agent, or an interactive confirmation; --no-input without --yes refuses and sends no command."
+    },
+    {
+      "name": "Mid-session temperature that actually applies",
+      "command": "temp",
+      "description": "While the heater runs, writes the target into Custom profile slot 3 and activates it, because a bare target PATCH is silently ignored mid-session."
+    },
+    {
+      "name": "Device UUID from the right field",
+      "command": "devices",
+      "description": "Resolves the Fenix heater UUID from the name field on GET /devices, where the API actually puts it, instead of deviceId."
+    },
+    {
+      "name": "Local session history",
+      "command": "history sessions",
+      "description": "Detects heater on/off edges from status and watch samples and records each heat run with its peak temperature in local SQLite."
+    },
+    {
+      "name": "Hours-on by week or month",
+      "command": "history hours",
+      "description": "Spend-style buckets of heater runtime from local sessions, for cost and usage questions Harvia's app cannot answer."
+    },
+    {
+      "name": "Read-only live doctor",
+      "command": "doctor --live",
+      "description": "Verifies endpoint discovery and device listing against the real cloud without ever sending a heat-on command."
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 // Package client is a thin MyHarvia 2 / Fenix REST client.
 //
-// Wire shapes were verified against sauna-cloud cli/harvia and public HA
-// clients. Hosts rotate; the endpoint map is process-local only.
+// Wire shapes were verified against a live Fenix heater and public Home
+// Assistant clients. Hosts rotate; the endpoint map is process-local only.
 package client
 
 import (
@@ -87,7 +87,7 @@ func (c *Client) do(method, rawURL, bearer string, body any) (json.RawMessage, i
 	if err != nil {
 		return nil, 0, exitcode.Transientf("%s %s: %v", method, redactURL(rawURL), err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode >= 400 {
 		secrets := append([]string{c.Password}, tokenValues(c.tokens)...)

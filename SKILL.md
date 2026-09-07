@@ -1,31 +1,48 @@
 ---
-name: harvia-pp-cli
-description: Agent-native Harvia MyHarvia 2 / Fenix CLI. Cognito auth, heater control, optional SQLite telemetry, JSON output.
+name: pp-harvia
+description: "Control a Harvia MyHarvia 2 / Fenix WiFi sauna heater from the terminal — status, confirm-gated heat-on, mid-session temperature via the Custom profile slot, lights, fan, live watch, and a local SQLite history of sessions and hours-on. Trigger phrases: `turn on the sauna`, `heat the sauna to 82`, `what's my sauna doing`, `turn the sauna off`, `sauna lights on`, `how many sauna hours this month`, `use harvia`, `run harvia-pp-cli`."
+author: "Amandeep Khurana"
+license: "MIT"
+argument-hint: "<command> [args]"
+allowed-tools: "Read Bash"
+metadata:
+  openclaw:
+    requires:
+      bins:
+        - harvia-pp-cli
+    install:
+      - kind: go
+        bins: [harvia-pp-cli]
+        module: github.com/amansk/harvia-pp-cli/cmd/harvia-pp-cli
 ---
 
-# harvia-pp-cli
+# Harvia MyHarvia 2 / Fenix — Printing Press CLI
 
-Local Printing Press-style CLI. **Not** a Worker or hosted scheduler. Never
-print passwords or tokens. `on` powers a real 240V heater.
+Local Go binary. **Not** a Cloudflare Worker, PWA, or hosted scheduler. Never
+print passwords or tokens. `on` powers a real **240V** heater.
 
-## Install
+## Prerequisites: Install the CLI
+
+This skill drives the `harvia-pp-cli` binary. **Verify it is installed before
+invoking any command.** If it is missing:
 
 ```bash
 go install github.com/amansk/harvia-pp-cli/cmd/harvia-pp-cli@latest
-# or from a checkout:
-go build -o harvia-pp-cli ./cmd/harvia-pp-cli
 ```
 
-Verify: `harvia-pp-cli --help`
+Verify: `harvia-pp-cli --version`. Go installs into `$GOPATH/bin` (default
+`$HOME/go/bin`); make sure that directory is on `$PATH`. Do not proceed until
+verification succeeds.
 
 ## Auth
 
-User needs a MyHarvia **account password** (Apple-only SSO will fail).
+The user needs a MyHarvia **account password**. Apple-only or Google-only
+sign-in with no password set will fail with exit 4; tell them to set a
+password in the MyHarvia 2 app.
 
 ```bash
 harvia-pp-cli auth login --env-file ~/.config/harvia/env --json
-# or env:
-# HARVIA_USERNAME / HARVIA_PASSWORD
+# or env: HARVIA_USERNAME / HARVIA_PASSWORD
 harvia-pp-cli auth status --json
 harvia-pp-cli doctor --agent
 ```
@@ -33,12 +50,13 @@ harvia-pp-cli doctor --agent
 `doctor` is green after login without `--live`. `--live` is read-only
 (endpoints + devices). Never use `--live` as an excuse to turn the heater on.
 
-If `auth status` shows `present: false`, stop and ask the user for credentials.
-Do not invent tokens.
+If `auth status` shows `present: false`, stop and ask the user for
+credentials. Do not invent tokens.
 
 ## Control
 
-Temps are Celsius. Mid-session `temp` uses Custom slot 3 (required by the API).
+Temperatures are **Celsius** (82C = 180F, 88C = 190F, max 90C). Mid-session
+`temp` uses Custom profile slot 3, which the API requires.
 
 ```bash
 harvia-pp-cli status --json
@@ -53,12 +71,15 @@ harvia-pp-cli devices --json
 harvia-pp-cli raw state --json
 ```
 
-`--agent` = compact JSON + no prompts + `--yes`.
+`--agent` = compact JSON + no prompts + no color + `--yes`.
 
-For `on` without `--agent`, pass `--yes` after the user confirms they intend
-to heat. `--no-input` without `--yes` must fail.
+For `on` without `--agent`, pass `--yes` only after the user has confirmed
+they intend to heat. `--no-input` without `--yes` fails with exit 2 and
+sends no command.
 
-If they also run sauna-cloud, do **not** add or suggest schedule commands.
+If the user also runs a separate sauna scheduler that writes the Custom
+profile slot, do **not** add or suggest schedule commands here. Two writers
+race on slot 3.
 
 ## History (local SQLite)
 
@@ -68,19 +89,34 @@ harvia-pp-cli history sessions --agent
 harvia-pp-cli history hours --by week --json
 ```
 
+Samples are appended by `status`, `watch`, and post-control reads. A rising
+`heater_on` opens a session; a falling edge closes it with peak temperature.
+`--no-store` skips SQLite.
+
+## Output and exit codes
+
+`--json` / `--agent` emit `{ok, data, error?}`. Errors go to stderr as
+`{ok:false, error}`.
+
+| Code | Meaning |
+| --- | --- |
+| 0 | ok |
+| 2 | usage / refused `on` |
+| 3 | no device |
+| 4 | auth / missing session |
+| 5 | API / parse |
+| 7 | transient (network, HTTP 5xx) |
+
+## Rules
+
+- Never print `idToken`, `accessToken`, `refreshToken`, or passwords.
+- Device UUID is in `name` on `GET /devices`. Use `devices --json`.
+- Wire temps are Celsius (32-90).
+- `go test ./...` never contacts `api.harvia.io` and never sends `SAUNA on`.
+
 ## CI / fixtures (no live Harvia)
 
 ```bash
 harvia-pp-cli --home "$TMPDIR/harvia-pp" --env-file testdata/fixtures/env auth login --json
 harvia-pp-cli --home "$TMPDIR/harvia-pp" doctor --agent
 ```
-
-Unit tests inject a mock HTTP server. `go test ./...` must never contact
-`api.harvia.io` or send a live `SAUNA on`.
-
-## Rules
-
-- Never print `idToken`, `accessToken`, `refreshToken`, or passwords.
-- Exit 4 = auth, 3 = missing device, 5 = API, 2 = usage / refused `on`, 7 = transient.
-- Device UUID is in `name` on `GET /devices`. Use `devices --json`.
-- Wire temps are Celsius (32-90).

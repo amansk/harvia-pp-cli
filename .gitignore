@@ -1,13 +1,23 @@
+# Build output
 /harvia-pp-cli
+/harvia-pp-cli.exe
 /bin/
 /dist/
+
+# Local state (never commit)
 *.db
 *.db-wal
 *.db-shm
 token.json
 **/token.json
 .env
-env
+/env
+*.env
+
+# Test fixtures are safe: no real credentials
+!testdata/fixtures/env
+
+# Editors / OS
 .idea/
 .vscode/
 *.swp

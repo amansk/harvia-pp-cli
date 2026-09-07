@@ -12,7 +12,7 @@ func TestRecordSampleOpensAndClosesSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	temp := 40.0
 	t0 := time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC)

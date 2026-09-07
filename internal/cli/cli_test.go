@@ -347,3 +347,43 @@ func TestCobraTree(t *testing.T) {
 		}
 	}
 }
+
+func TestOnRefusesOnNonTTYStdinWithoutYes(t *testing.T) {
+	srv := fixture.New()
+	defer srv.Close()
+	opt, _ := testOpt(t, srv)
+	if _, _, code := run(t, opt, "auth", "login"); code != 0 {
+		t.Fatal("login")
+	}
+	// /dev/null is a character device; a ModeCharDevice check would wrongly
+	// treat it as an interactive terminal and print a prompt to nobody.
+	devnull, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Skip(err)
+	}
+	defer func() { _ = devnull.Close() }()
+	orig := os.Stdin
+	os.Stdin = devnull
+	defer func() { os.Stdin = orig }()
+
+	cmd := newRoot(&Options{Home: opt.Home, EnvFile: opt.EnvFile, HTTP: opt.HTTP})
+	var out, errb bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&errb)
+	cmd.SetArgs([]string{"--home", opt.Home, "--env-file", opt.EnvFile, "on"})
+	runErr := cmd.Execute()
+	if runErr == nil {
+		t.Fatal("on without --yes on non-TTY stdin must fail")
+	}
+	if code := handleErr(cmd, runErr); code != exitcode.Usage {
+		t.Fatalf("code %d want %d: %v", code, exitcode.Usage, runErr)
+	}
+	if strings.Contains(errb.String(), "Continue?") {
+		t.Fatalf("must not prompt on non-TTY stdin: %s", errb.String())
+	}
+	for _, r := range srv.Requests() {
+		if r.Path == "/devices/command" {
+			t.Fatal("must not POST command")
+		}
+	}
+}

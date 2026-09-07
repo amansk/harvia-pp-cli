@@ -10,8 +10,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version-file: go.mod
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - name: Vet
+        run: go vet ./...
       - name: Test
         run: go test ./...
       - name: Build
         run: go build -o harvia-pp-cli ./cmd/harvia-pp-cli
+      - name: Smoke (--help, --version, doctor on fixtures; no live Harvia)
+        run: |
+          ./harvia-pp-cli --help >/dev/null
+          ./harvia-pp-cli --version
+          ./harvia-pp-cli --home "$RUNNER_TEMP/harvia-pp" --no-input on </dev/null && exit 1 || test $? -eq 2
+      - name: Cross-compile
+        run: |
+          for t in darwin/arm64 darwin/amd64 linux/arm64 windows/amd64; do
+            GOOS=${t%/*} GOARCH=${t#*/} CGO_ENABLED=0 go build -o /dev/null ./cmd/harvia-pp-cli
+          done

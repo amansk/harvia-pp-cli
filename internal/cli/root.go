@@ -19,7 +19,8 @@ import (
 	"golang.org/x/term"
 )
 
-const version = "0.1.0"
+// version is overridden at build time via -ldflags "-X .../internal/cli.version=...".
+var version = "0.1.0"
 
 // Options are global flags.
 type Options struct {
@@ -103,7 +104,7 @@ func recordStatus(opt *Options, st actions.Status, rawState, rawTele []byte, sou
 	if err != nil || db == nil {
 		return
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	_ = db.RecordSample(st, rawState, rawTele, source, time.Time{})
 }
 
@@ -258,13 +259,12 @@ func promptCreds(opt *Options, creds auth.Creds) (auth.Creds, error) {
 	return creds, nil
 }
 
+// isTTY reports whether f is an interactive terminal. os.ModeCharDevice is
+// not enough: /dev/null is a character device, so `on </dev/null` would
+// otherwise print a prompt to nobody.
 func isTTY(f *os.File) bool {
 	if f == nil {
 		return false
 	}
-	st, err := f.Stat()
-	if err != nil {
-		return false
-	}
-	return st.Mode()&os.ModeCharDevice != 0
+	return term.IsTerminal(int(f.Fd()))
 }

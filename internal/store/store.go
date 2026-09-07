@@ -207,7 +207,7 @@ FROM samples ORDER BY id DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var out []Sample
 	for rows.Next() {
 		var s Sample
@@ -239,7 +239,7 @@ FROM sessions ORDER BY id DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var out []Session
 	for rows.Next() {
 		var s Session
@@ -302,7 +302,7 @@ ORDER BY 1 DESC`, expr))
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var out []HoursRow
 	for rows.Next() {
 		var r HoursRow

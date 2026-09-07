@@ -31,7 +31,7 @@ func newHistorySamplesCmd(opt *Options) *cobra.Command {
 			if db == nil {
 				return exitcode.Usagef("history requires SQLite (omit --no-store)")
 			}
-			defer db.Close()
+			defer func() { _ = db.Close() }()
 			rows, err := db.ListSamples(limit)
 			if err != nil {
 				return err
@@ -65,7 +65,7 @@ func newHistorySessionsCmd(opt *Options) *cobra.Command {
 			if db == nil {
 				return exitcode.Usagef("history requires SQLite (omit --no-store)")
 			}
-			defer db.Close()
+			defer func() { _ = db.Close() }()
 			rows, err := db.ListSessions(limit)
 			if err != nil {
 				return err
@@ -107,7 +107,7 @@ func newHistoryHoursCmd(opt *Options) *cobra.Command {
 			if db == nil {
 				return exitcode.Usagef("history requires SQLite (omit --no-store)")
 			}
-			defer db.Close()
+			defer func() { _ = db.Close() }()
 			rows, err := db.Hours(by)
 			if err != nil {
 				return err

@@ -1,0 +1,11 @@
+version: "2"
+linters:
+  default: standard
+  settings:
+    errcheck:
+      # Writes to cobra's stdout/stderr writers; a failed write there has no
+      # useful recovery path in a CLI.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
