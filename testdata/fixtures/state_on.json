@@ -1,0 +1,16 @@
+{
+  "state": {
+    "displayName": "Test Sauna",
+    "heater": { "on": true },
+    "activeProfile": "3",
+    "targetTemp": 82,
+    "targetHum": 0,
+    "profiles": {
+      "0": { "name": "Mild", "targetTemp": 70, "targetHum": 0 },
+      "1": { "name": "Cozy", "targetTemp": 80, "targetHum": 0 },
+      "2": { "name": "Hot", "targetTemp": 90, "targetHum": 0 },
+      "3": { "name": "", "targetTemp": 82, "targetHum": 5 }
+    },
+    "errors": []
+  }
+}

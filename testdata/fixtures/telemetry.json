@@ -1,0 +1,13 @@
+{
+  "data": {
+    "temp": 42,
+    "targetTemp": 80,
+    "hum": 0,
+    "lightOn": 0,
+    "fanOn": 0,
+    "heatOn": 0,
+    "doorSafetyState": 1,
+    "autoOffTime": 60,
+    "onTime": 0
+  }
+}
