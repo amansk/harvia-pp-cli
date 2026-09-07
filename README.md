@@ -122,3 +122,7 @@ Reverse-engineering (read-only reference, not copied into this binary):
 - [TommyJuuti/harvia-home-assistant-plugin](https://github.com/TommyJuuti/harvia-home-assistant-plugin)
 
 Harvia's cloud API is unofficial and can change without notice.
+
+## License
+
+[MIT](LICENSE) © 2026 Amandeep Khurana

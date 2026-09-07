@@ -4,8 +4,10 @@
 *.db
 *.db-wal
 *.db-shm
-/token.json
+token.json
+**/token.json
 .env
+env
 .idea/
 .vscode/
 *.swp
