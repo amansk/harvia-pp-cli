@@ -47,5 +47,13 @@
       "command": "doctor --live",
       "description": "Verifies endpoint discovery and device listing against the real cloud without ever sending a heat-on command."
     }
+  ],
+  "spec_path": "spec.yaml",
+  "spec_format": "openapi",
+  "spec_source": "community",
+  "spec_checksum": "sha256:16b5d7258afa9325bb10e58b682ffcfa92998ee9a914bb5aec222876d49b800b",
+  "auth_env_vars": [
+    "HARVIA_USERNAME",
+    "HARVIA_PASSWORD"
   ]
 }

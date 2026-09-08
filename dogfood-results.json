@@ -1,5 +1,7 @@
 {
   "dir": "\u003ccli-dir\u003e/harvia-pp-cli",
+  "spec_path": "\u003ccli-dir\u003e/spec.yaml",
+  "spec_source": "bundled",
   "verdict": "FAIL",
   "path_check": {
     "tested": 0,
@@ -7,21 +9,21 @@
     "valid_pct": 0
   },
   "auth_check": {
-    "spec_scheme": "",
-    "generated_format": "",
+    "spec_scheme": "bearer token format (expects \"Bearer \" prefix)",
+    "generated_format": "Bearer ",
     "match": true,
-    "detail": "spec not provided; auth protocol check skipped"
+    "detail": "spec and generated client both use \"Bearer\""
   },
   "browser_session_check": {
     "required": false,
     "pass": true,
-    "detail": "spec not provided; browser-session auth check skipped"
+    "detail": "browser-session auth not required"
   },
   "oauth_scope_coverage_check": {
     "checked": 0,
     "covered": 0,
     "skipped": true,
-    "detail": "spec not provided; OAuth scope coverage check skipped"
+    "detail": "no OAuth-scoped endpoints in spec"
   },
   "dead_flags": {
     "total": 0,

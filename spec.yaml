@@ -1,0 +1,341 @@
+openapi: 3.1.0
+info:
+  title: Harvia MyHarvia 2 / Fenix cloud REST (unofficial)
+  version: 0.1.0
+  description: |
+    Community-documented wire shapes for the REST wrapper used by the MyHarvia 2
+    app for Fenix WiFi sauna heaters. Not published by Harvia; verified against a
+    live heater and cross-checked with public Home Assistant integrations. Hosts
+    for the generics/device/data services rotate and must be discovered per
+    process from GET https://api.harvia.io/endpoints.
+
+    Traps:
+    1. On GET /devices the heater UUID is in `name`, not `deviceId`.
+    2. While the heater runs, a bare PATCH /devices/target is ignored. Write the
+       target into Custom profile slot "3" (PATCH /devices/target with
+       profile:"3"), then PATCH /devices/profile with profile:"3".
+    3. POST /auth/refresh returns no new refreshToken. Keep the old one.
+    4. Temperatures are Celsius (32-90).
+    5. SAUNA on powers a real 240V heater. Confirm before sending.
+servers:
+  - url: https://api.harvia.io
+    description: Endpoint discovery only. Service base URLs come from /endpoints.
+  - url: "{generics}"
+    description: RestApi.generics.https from /endpoints
+    variables:
+      generics:
+        default: https://generics.example.invalid
+  - url: "{device}"
+    description: RestApi.device.https from /endpoints
+    variables:
+      device:
+        default: https://device.example.invalid
+  - url: "{data}"
+    description: RestApi.data.https from /endpoints
+    variables:
+      data:
+        default: https://data.example.invalid
+components:
+  securitySchemes:
+    cognitoIdToken:
+      type: http
+      scheme: bearer
+      description: Cognito idToken from POST /auth/token or /auth/refresh (about 1h).
+  schemas:
+    Cabin:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          default: C1
+    TokenResponse:
+      type: object
+      properties:
+        idToken: { type: string }
+        accessToken: { type: string }
+        refreshToken: { type: string, description: Absent on refresh. }
+        expiresIn: { type: number }
+    Device:
+      type: object
+      properties:
+        name: { type: string, description: UUID on Fenix rows. }
+        deviceId: { type: string }
+        id: { type: string }
+        displayName: { type: string }
+    Profile:
+      type: object
+      properties:
+        name: { type: string }
+        targetTemp: { type: number }
+        targetHum: { type: number }
+    State:
+      type: object
+      properties:
+        state:
+          type: object
+          properties:
+            displayName: { type: string }
+            heater:
+              type: object
+              properties:
+                "on": { type: boolean }
+            activeProfile: { type: string, description: "0 Mild, 1 Cozy, 2 Hot, 3 Custom" }
+            targetTemp: { type: number }
+            targetHum: { type: number }
+            profiles:
+              type: object
+              additionalProperties:
+                $ref: "#/components/schemas/Profile"
+            errors:
+              type: array
+              items: { type: string }
+    Telemetry:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            temp: { type: number, description: Celsius }
+            targetTemp: { type: number }
+            hum: { type: number }
+            lightOn: { type: integer }
+            fanOn: { type: integer }
+            heatOn: { type: integer }
+            doorSafetyState: { type: integer, description: 1 = closed }
+            autoOffTime: { type: number, description: minutes }
+            onTime: { type: number, description: minutes }
+paths:
+  /endpoints:
+    get:
+      operationId: getEndpoints
+      summary: Discover rotating service hosts
+      servers:
+        - url: https://api.harvia.io
+      responses:
+        "200":
+          description: Endpoint map
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  endpoints:
+                    type: object
+                    properties:
+                      RestApi:
+                        type: object
+                        additionalProperties:
+                          type: object
+                          properties:
+                            https: { type: string, format: uri }
+  /auth/token:
+    post:
+      operationId: login
+      summary: Exchange MyHarvia email + password for Cognito tokens
+      servers:
+        - url: "{generics}"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Wrong password, or Apple/Google SSO account with no password set
+  /auth/refresh:
+    post:
+      operationId: refresh
+      summary: Refresh idToken (no new refreshToken is returned)
+      servers:
+        - url: "{generics}"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken, email]
+              properties:
+                refreshToken: { type: string }
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: Tokens without refreshToken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+  /devices:
+    get:
+      operationId: listDevices
+      summary: List account devices
+      security:
+        - cognitoIdToken: []
+      servers:
+        - url: "{device}"
+      parameters:
+        - name: maxResults
+          in: query
+          schema: { type: integer, default: 100 }
+        - name: nextToken
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Device page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Device"
+                  nextToken: { type: string }
+  /devices/state:
+    get:
+      operationId: getState
+      summary: Heater state, active profile, profile slots, errors
+      security:
+        - cognitoIdToken: []
+      servers:
+        - url: "{device}"
+      parameters:
+        - name: deviceId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - name: subId
+          in: query
+          required: true
+          schema: { type: string, default: C1 }
+      responses:
+        "200":
+          description: State
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+  /data/latest-data:
+    get:
+      operationId: getTelemetry
+      summary: Latest telemetry sample
+      security:
+        - cognitoIdToken: []
+      servers:
+        - url: "{data}"
+      parameters:
+        - name: deviceId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - name: cabinId
+          in: query
+          required: true
+          schema: { type: string, default: C1 }
+      responses:
+        "200":
+          description: Telemetry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Telemetry"
+  /devices/command:
+    post:
+      operationId: sendCommand
+      summary: SAUNA / LIGHTS / FAN / STEAMER on|off, or ADJUST_DURATION minutes
+      description: |
+        SAUNA on powers a real 240V heater. Destructive-at-use; confirm first.
+      security:
+        - cognitoIdToken: []
+      servers:
+        - url: "{device}"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deviceId, cabin, command]
+              properties:
+                deviceId: { type: string, format: uuid }
+                cabin:
+                  $ref: "#/components/schemas/Cabin"
+                command:
+                  type: object
+                  required: [type, state]
+                  properties:
+                    type:
+                      type: string
+                      enum: [SAUNA, LIGHTS, FAN, STEAMER, ADJUST_DURATION]
+                    state:
+                      description: "\"on\" / \"off\", or minutes (number) for ADJUST_DURATION"
+                      oneOf:
+                        - type: string
+                          enum: ["on", "off"]
+                        - type: integer
+                          minimum: 1
+                          maximum: 360
+      responses:
+        "200":
+          description: Accepted
+  /devices/target:
+    patch:
+      operationId: setTarget
+      summary: Set target temperature/humidity, optionally into a profile slot
+      description: Ignored while the heater is on unless profile "3" is included.
+      security:
+        - cognitoIdToken: []
+      servers:
+        - url: "{device}"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deviceId, cabin]
+              properties:
+                deviceId: { type: string, format: uuid }
+                cabin:
+                  $ref: "#/components/schemas/Cabin"
+                temperature: { type: integer, minimum: 32, maximum: 90, description: Celsius }
+                humidity: { type: integer, minimum: 0 }
+                profile: { type: string, enum: ["0", "1", "2", "3"] }
+      responses:
+        "200":
+          description: Accepted
+  /devices/profile:
+    patch:
+      operationId: setProfile
+      summary: Activate a program slot
+      security:
+        - cognitoIdToken: []
+      servers:
+        - url: "{device}"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deviceId, profile]
+              properties:
+                deviceId: { type: string, format: uuid }
+                profile: { type: string, enum: ["0", "1", "2", "3"] }
+      responses:
+        "200":
+          description: Accepted
