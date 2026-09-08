@@ -176,4 +176,4 @@ is not affiliated with or endorsed by Harvia.
 
 ## License
 
-[MIT](LICENSE) © 2026 Amandeep Khurana
+[Apache-2.0](LICENSE) © 2026 Amandeep Khurana

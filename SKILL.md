@@ -2,7 +2,7 @@
 name: pp-harvia
 description: "Control a Harvia MyHarvia 2 / Fenix WiFi sauna heater from the terminal — status, confirm-gated heat-on, mid-session temperature via the Custom profile slot, lights, fan, live watch, and a local SQLite history of sessions and hours-on. Trigger phrases: `turn on the sauna`, `heat the sauna to 82`, `what's my sauna doing`, `turn the sauna off`, `sauna lights on`, `how many sauna hours this month`, `use harvia`, `run harvia-pp-cli`."
 author: "Amandeep Khurana"
-license: "MIT"
+license: "Apache-2.0"
 argument-hint: "<command> [args]"
 allowed-tools: "Read Bash"
 metadata:
