@@ -23,16 +23,24 @@ print passwords or tokens. `on` powers a real **240V** heater.
 
 ## Prerequisites: Install the CLI
 
-This skill drives the `harvia-pp-cli` binary. **Verify it is installed before
-invoking any command.** If it is missing:
+This skill drives the `harvia-pp-cli` binary. **You must verify the CLI is installed before invoking any command from this skill.** If it is missing, install it first:
+
+1. Install via the Printing Press installer. It defaults binaries to `$HOME/.local/bin` on macOS/Linux and `%LOCALAPPDATA%\Programs\PrintingPress\bin` on Windows:
+   ```bash
+   npx -y @mvanhorn/printing-press-library install harvia --cli-only
+   ```
+2. Verify: `harvia-pp-cli --version`
+3. Ensure the reported install directory is on `$PATH` for the agent/runtime that will invoke this skill.
+
+If the `npx` install fails (no Node, offline, etc.), fall back to a direct Go install (requires Go 1.26.6 or newer). This installs into `$GOPATH/bin` (default `$HOME/go/bin`), so add that directory to `$PATH` instead:
 
 ```bash
-go install github.com/amansk/harvia-pp-cli/cmd/harvia-pp-cli@latest
+go install github.com/mvanhorn/printing-press-library/library/devices/harvia/cmd/harvia-pp-cli@latest
 ```
 
-Verify: `harvia-pp-cli --version`. Go installs into `$GOPATH/bin` (default
-`$HOME/go/bin`); make sure that directory is on `$PATH`. Do not proceed until
-verification succeeds.
+If `--version` reports "command not found" after install, the runtime cannot see the binary directory on `$PATH`. Do not proceed with skill commands until verification succeeds.
+
+Until the library entry lands, the same binary installs from the source repo: `go install github.com/amansk/harvia-pp-cli/cmd/harvia-pp-cli@latest`.
 
 ## Auth
 
