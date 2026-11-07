@@ -12,7 +12,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: gofmt
-        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+        run: test -z "$("$(go env GOROOT)/bin/gofmt" -l .)" || ("$(go env GOROOT)/bin/gofmt" -l . && exit 1)
       - name: Vet
         run: go vet ./...
       - name: Test

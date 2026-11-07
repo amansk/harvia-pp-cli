@@ -1,6 +1,8 @@
 module github.com/amansk/harvia-pp-cli
 
-go 1.22
+go 1.26.10
+
+toolchain go1.27.3
 
 require (
 	github.com/spf13/cobra v1.8.1
